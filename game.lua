@@ -1,5 +1,17 @@
--- Snake Game Module
--- Hot-reloadable with state preservation
+-- game.lua - Main Snake Game Module
+--
+-- This file contains the core game logic for a classic Snake game built with Love2D.
+-- It handles all aspects of gameplay including:
+--   - Game state management (snake position, food, score, high score)
+--   - Snake movement with wrap-around boundaries (no wall collisions)
+--   - Food spawning and collision detection
+--   - Multiple game screens: menu, playing, paused, and game over
+--   - Input handling for snake direction (WASD/arrow keys) and menu navigation
+--   - Rendering of the game grid, snake (with rainbow effect on eating), food, and HUD
+--   - Hot-reload support with state preservation for development
+--
+-- The module exports functions: init(), update(dt), keypressed(), draw(),
+-- getState(), and reload() for integration with the main Love2D callbacks.
 
 local M = {}
 
