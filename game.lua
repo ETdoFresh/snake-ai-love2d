@@ -7,6 +7,10 @@ local M = {}
 local GRID_WIDTH = 20
 local GRID_HEIGHT = 20
 local MOVE_INTERVAL = 0.1
+local SPEED_BOOST_INTERVAL = 0.05  -- Faster movement when speed boost is active
+local SPEED_BOOST_DURATION = 5.0   -- How long the speed boost effect lasts
+local SPEED_BOOST_SPAWN_MIN = 8.0  -- Minimum time before spawning speed boost
+local SPEED_BOOST_SPAWN_MAX = 15.0 -- Maximum time before spawning speed boost
 local HUD_HEIGHT = 40  -- Space reserved for HUD
 
 -- Calculate scale and offsets to fit the game in the window
@@ -43,6 +47,8 @@ local COLORS = {
     snake_head = {0.3, 0.8, 0.3, 1},
     snake_body = {0.2, 0.6, 0.2, 1},
     food = {0.9, 0.3, 0.3, 1},
+    speed_boost = {0.2, 0.7, 0.9, 1},  -- Cyan/blue for speed boost powerup
+    speed_boost_active = {0.4, 0.9, 1.0, 1},  -- Bright cyan when effect is active
     text = {1, 1, 1, 1},
     menu_bg = {0, 0, 0, 0.7},
     menu_selected = {0.4, 0.8, 0.4, 1}
@@ -68,9 +74,16 @@ function M.init()
         rainbowMode = false,
         rainbowTimer = 0,
         rainbowDuration = 1.5,  -- 1.5 seconds of rainbow after eating
-        rainbowOffset = 0
+        rainbowOffset = 0,
+        -- Speed boost powerup
+        speedBoost = nil,           -- Position of speed boost powerup {x, y} or nil if not spawned
+        speedBoostActive = false,   -- Whether speed boost effect is currently active
+        speedBoostTimer = 0,        -- Remaining duration of speed boost effect
+        speedBoostSpawnTimer = 0    -- Timer until next speed boost spawns
     }
     M.spawnFood()
+    -- Set initial spawn timer for speed boost
+    state.speedBoostSpawnTimer = love.math.random() * (SPEED_BOOST_SPAWN_MAX - SPEED_BOOST_SPAWN_MIN) + SPEED_BOOST_SPAWN_MIN
 end
 
 -- Get state for hot-reload
@@ -92,6 +105,11 @@ function M.reload(savedState)
         state.rainbowTimer = state.rainbowTimer or 0
         state.rainbowDuration = state.rainbowDuration or 1.5
         state.rainbowOffset = state.rainbowOffset or 0
+        -- Speed boost migration
+        if state.speedBoost == nil then state.speedBoost = nil end  -- Already nil is fine
+        state.speedBoostActive = state.speedBoostActive or false
+        state.speedBoostTimer = state.speedBoostTimer or 0
+        state.speedBoostSpawnTimer = state.speedBoostSpawnTimer or (love.math.random() * (SPEED_BOOST_SPAWN_MAX - SPEED_BOOST_SPAWN_MIN) + SPEED_BOOST_SPAWN_MIN)
     else
         M.init()
     end
@@ -110,6 +128,37 @@ function M.spawnFood()
             if segment.x == state.food.x and segment.y == state.food.y then
                 valid = false
                 break
+            end
+        end
+        -- Also check against speed boost position
+        if valid and state.speedBoost then
+            if state.food.x == state.speedBoost.x and state.food.y == state.speedBoost.y then
+                valid = false
+            end
+        end
+    end
+end
+
+-- Spawn speed boost powerup at random location
+function M.spawnSpeedBoost()
+    local valid = false
+    while not valid do
+        state.speedBoost = {
+            x = love.math.random(1, GRID_WIDTH),
+            y = love.math.random(1, GRID_HEIGHT)
+        }
+        valid = true
+        -- Check against snake
+        for _, segment in ipairs(state.snake) do
+            if segment.x == state.speedBoost.x and segment.y == state.speedBoost.y then
+                valid = false
+                break
+            end
+        end
+        -- Check against food
+        if valid and state.food then
+            if state.speedBoost.x == state.food.x and state.speedBoost.y == state.food.y then
+                valid = false
             end
         end
     end
@@ -175,6 +224,22 @@ local function moveSnake()
         table.remove(state.snake)
     end
 
+    -- Check speed boost collision
+    if state.speedBoost and newHead.x == state.speedBoost.x and newHead.y == state.speedBoost.y then
+        -- Activate speed boost effect
+        state.speedBoostActive = true
+        state.speedBoostTimer = SPEED_BOOST_DURATION
+        -- Remove the powerup from the field
+        state.speedBoost = nil
+        -- Reset spawn timer for next powerup
+        state.speedBoostSpawnTimer = love.math.random() * (SPEED_BOOST_SPAWN_MAX - SPEED_BOOST_SPAWN_MIN) + SPEED_BOOST_SPAWN_MIN
+        -- Bonus points for collecting speed boost
+        state.score = state.score + 25
+        if state.score > state.highScore then
+            state.highScore = state.score
+        end
+    end
+
     -- Check self collision only (no wall collision since we wrap around)
     if checkSelfCollision() then
         state.gameOver = true
@@ -207,9 +272,29 @@ function M.update(dt)
         end
     end
 
+    -- Update speed boost effect timer
+    if state.speedBoostActive then
+        state.speedBoostTimer = state.speedBoostTimer - dt
+        if state.speedBoostTimer <= 0 then
+            state.speedBoostActive = false
+            state.speedBoostTimer = 0
+        end
+    end
+
+    -- Update speed boost spawn timer (only if no speed boost is currently on field)
+    if not state.speedBoost and not state.speedBoostActive then
+        state.speedBoostSpawnTimer = state.speedBoostSpawnTimer - dt
+        if state.speedBoostSpawnTimer <= 0 then
+            M.spawnSpeedBoost()
+        end
+    end
+
+    -- Use faster interval when speed boost is active
+    local currentInterval = state.speedBoostActive and SPEED_BOOST_INTERVAL or MOVE_INTERVAL
+
     state.moveTimer = state.moveTimer + dt
-    if state.moveTimer >= MOVE_INTERVAL then
-        state.moveTimer = state.moveTimer - MOVE_INTERVAL
+    if state.moveTimer >= currentInterval then
+        state.moveTimer = state.moveTimer - currentInterval
         moveSnake()
     end
 end
@@ -315,6 +400,8 @@ end
 local function drawSnake()
     local scale, offsetX, offsetY = getScaleAndOffsets()
     for i, segment in ipairs(state.snake) do
+        local r, g, b = 0, 0, 0
+
         if state.rainbowMode then
             -- Fade from green to purple and back when eating food
             local fadeProgress = state.rainbowTimer / state.rainbowDuration
@@ -325,10 +412,9 @@ local function drawSnake()
                 -- Head: fade from bright green to bright purple
                 local greenR, greenG, greenB = 0.4, 0.9, 0.4
                 local purpleR, purpleG, purpleB = 0.8, 0.4, 0.9
-                local r = greenR + (purpleR - greenR) * fade
-                local g = greenG + (purpleG - greenG) * fade
-                local b = greenB + (purpleB - greenB) * fade
-                love.graphics.setColor(r, g, b, 1)
+                r = greenR + (purpleR - greenR) * fade
+                g = greenG + (purpleG - greenG) * fade
+                b = greenB + (purpleB - greenB) * fade
             else
                 -- Body: fade from green gradient to purple gradient
                 local gradient = 1 - (i * 0.05)
@@ -336,23 +422,34 @@ local function drawSnake()
 
                 local greenR, greenG, greenB = 0.2 * gradient, 0.8 * gradient, 0.2 * gradient
                 local purpleR, purpleG, purpleB = 0.6 * gradient, 0.2 * gradient, 0.8 * gradient
-                local r = greenR + (purpleR - greenR) * fade
-                local g = greenG + (purpleG - greenG) * fade
-                local b = greenB + (purpleB - greenB) * fade
-                love.graphics.setColor(r, g, b, 1)
+                r = greenR + (purpleR - greenR) * fade
+                g = greenG + (purpleG - greenG) * fade
+                b = greenB + (purpleB - greenB) * fade
             end
         else
             -- Normal green color scheme
             if i == 1 then
                 -- Bright green for head
-                love.graphics.setColor(0.4, 0.9, 0.4, 1)
+                r, g, b = 0.4, 0.9, 0.4
             else
                 -- Darker green for body, with slight gradient
                 local gradient = 1 - (i * 0.05)  -- Slightly darker for each segment
                 gradient = math.max(gradient, 0.4)  -- Don't go too dark
-                love.graphics.setColor(0.2 * gradient, 0.8 * gradient, 0.2 * gradient, 1)
+                r, g, b = 0.2 * gradient, 0.8 * gradient, 0.2 * gradient
             end
         end
+
+        -- Apply cyan tint when speed boost is active
+        if state.speedBoostActive then
+            local time = love.timer.getTime()
+            local pulse = 0.5 + 0.5 * math.sin(time * 10 + i * 0.3)  -- Wave effect along body
+            -- Blend towards cyan
+            r = r * 0.5 + COLORS.speed_boost_active[1] * 0.5 * pulse
+            g = g * 0.5 + COLORS.speed_boost_active[2] * 0.5 * pulse
+            b = b * 0.5 + COLORS.speed_boost_active[3] * 0.5 * pulse
+        end
+
+        love.graphics.setColor(r, g, b, 1)
 
         -- Calculate segment margin based on scale to maintain visual appearance
         local margin = math.max(1, math.floor(scale * 0.1))
@@ -374,6 +471,43 @@ local function drawFood()
 
     -- Draw a circle
     love.graphics.circle("fill", centerX, centerY, radius)
+end
+
+local function drawSpeedBoost()
+    if not state.speedBoost then return end
+
+    local scale, offsetX, offsetY = getScaleAndOffsets()
+    local centerX = offsetX + (state.speedBoost.x - 1) * scale + scale / 2
+    local centerY = offsetY + (state.speedBoost.y - 1) * scale + scale / 2
+    local radius = math.max(2, (scale - 4) / 2)
+
+    -- Pulsing effect using time
+    local time = love.timer.getTime()
+    local pulse = 0.8 + 0.2 * math.sin(time * 5)  -- Pulse between 0.8 and 1.0
+
+    -- Draw outer glow
+    love.graphics.setColor(COLORS.speed_boost[1], COLORS.speed_boost[2], COLORS.speed_boost[3], 0.3 * pulse)
+    love.graphics.circle("fill", centerX, centerY, radius * 1.4)
+
+    -- Draw main diamond shape
+    love.graphics.setColor(COLORS.speed_boost[1] * pulse, COLORS.speed_boost[2] * pulse, COLORS.speed_boost[3] * pulse, 1)
+    local size = radius * 0.9
+    love.graphics.polygon("fill",
+        centerX, centerY - size,        -- Top
+        centerX + size, centerY,        -- Right
+        centerX, centerY + size,        -- Bottom
+        centerX - size, centerY         -- Left
+    )
+
+    -- Draw inner highlight
+    love.graphics.setColor(1, 1, 1, 0.5 * pulse)
+    local innerSize = size * 0.4
+    love.graphics.polygon("fill",
+        centerX, centerY - innerSize,
+        centerX + innerSize, centerY,
+        centerX, centerY + innerSize,
+        centerX - innerSize, centerY
+    )
 end
 
 local function drawHUD()
@@ -401,9 +535,19 @@ local function drawHUD()
     love.graphics.print(snakeLength, centerX, hudY)
     love.graphics.print(highScoreText, highScoreX, hudY)
 
-    -- Show scale info in debug mode (comment out for release)
-    love.graphics.setColor(0.5, 0.5, 0.5, 0.8)
-    love.graphics.print("Scale: " .. string.format("%.1fx", scale), padding, 10)
+    -- Show speed boost status when active
+    if state.speedBoostActive then
+        local time = love.timer.getTime()
+        local pulse = 0.7 + 0.3 * math.sin(time * 8)
+        love.graphics.setColor(COLORS.speed_boost_active[1] * pulse, COLORS.speed_boost_active[2] * pulse, COLORS.speed_boost_active[3] * pulse, 1)
+        local boostText = string.format("SPEED BOOST! %.1fs", state.speedBoostTimer)
+        local boostX = (windowWidth - love.graphics.getFont():getWidth(boostText)) / 2
+        love.graphics.print(boostText, boostX, 10)
+    else
+        -- Show scale info in debug mode (comment out for release)
+        love.graphics.setColor(0.5, 0.5, 0.5, 0.8)
+        love.graphics.print("Scale: " .. string.format("%.1fx", scale), padding, 10)
+    end
 end
 
 local function drawMenu()
@@ -543,6 +687,7 @@ function M.draw()
     else
         drawGrid()
         drawFood()
+        drawSpeedBoost()
         drawSnake()
         drawHUD()
 
