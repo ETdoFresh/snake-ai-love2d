@@ -1,6 +1,10 @@
 -- Snake Game
 -- A classic Snake game built with Love2D
 -- Run directly: love game/
+-- Supports hot-reload via getState() and reload() functions
+
+-- Game module
+local game = {}
 
 -- Constants
 local GRID_WIDTH = 20
@@ -25,6 +29,18 @@ local COLORS = {
 
 -- Game state
 local state = nil
+
+-- Helper function to deep copy a table
+local function deepCopy(orig)
+    if type(orig) ~= 'table' then
+        return orig
+    end
+    local copy = {}
+    for k, v in pairs(orig) do
+        copy[k] = deepCopy(v)
+    end
+    return copy
+end
 
 -- Helper functions
 local function getScaleAndOffsets()
@@ -392,13 +408,16 @@ local function drawGameOver()
     love.graphics.printf("Press ESC for menu", 0, h/2 + 110, w, "center")
 end
 
--- Love2D callbacks
-function love.load()
+-- Module functions (for hot-reload support)
+
+-- Initialize the game (called by love.load or after reload without saved state)
+function game.init()
     love.keyboard.setKeyRepeat(true)
     initGame()
 end
 
-function love.update(dt)
+-- Update game logic
+function game.update(dt)
     if state.screen ~= "playing" then return end
 
     if state.rainbowMode then
@@ -434,7 +453,8 @@ function love.update(dt)
     end
 end
 
-function love.draw()
+-- Draw the game
+function game.draw()
     love.graphics.setColor(COLORS.background)
     love.graphics.rectangle("fill", 0, 0, love.graphics.getWidth(), love.graphics.getHeight())
 
@@ -455,7 +475,8 @@ function love.draw()
     end
 end
 
-function love.keypressed(key, scancode, isrepeat)
+-- Handle key presses
+function game.keypressed(key, scancode, isrepeat)
     if isrepeat and (state.screen == "menu" or state.screen == "paused" or state.screen == "gameover") then
         return
     end
@@ -515,3 +536,40 @@ function love.keypressed(key, scancode, isrepeat)
         end
     end
 end
+
+-- Get a copy of the current game state for hot-reload preservation
+function game.getState()
+    if not state then
+        return nil
+    end
+    return deepCopy(state)
+end
+
+-- Reload the game with a saved state (for hot-reload)
+function game.reload(savedState)
+    love.keyboard.setKeyRepeat(true)
+    if savedState then
+        state = deepCopy(savedState)
+    else
+        initGame()
+    end
+end
+
+-- Love2D callbacks (delegate to module functions)
+function love.load()
+    game.init()
+end
+
+function love.update(dt)
+    game.update(dt)
+end
+
+function love.draw()
+    game.draw()
+end
+
+function love.keypressed(key, scancode, isrepeat)
+    game.keypressed(key, scancode, isrepeat)
+end
+
+return game
