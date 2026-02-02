@@ -1,4 +1,4 @@
--- game/main.lua - Game Module Re-export
+-- game/init.lua - Game Module Re-export
 --
 -- This file re-exports the game module for the parent hot-reload system.
 -- IMPORTANT: This file must NOT define any love.* callbacks (load, update, draw, keypressed).

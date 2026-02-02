@@ -1,13 +1,13 @@
 -- Snake Game Entry Point
 -- This file handles all Love2D callbacks and loads the game module.
--- The game module (game/main.lua) re-exports game/game.lua which contains:
+-- The game module (game/init.lua) re-exports game/game.lua which contains:
 --   - init() - Initialize game state
 --   - update(dt) - Game loop
 --   - draw() - Render game
 --   - keypressed(key, scancode, isrepeat) - Handle input
 --   - getState() - Return state for hot-reload preservation
 --   - reload(savedState) - Restore state after hot-reload
-local game = require("game.main")
+local game = require("game")
 
 function love.load()
     game.init()
