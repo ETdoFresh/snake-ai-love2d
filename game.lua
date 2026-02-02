@@ -415,39 +415,39 @@ local function drawSnake()
         local r, g, b = 0, 0, 0
 
         if state.rainbowMode then
-            -- Fade from yellow to purple and back when eating food
+            -- Fade from green to purple and back when eating food
             local fadeProgress = state.rainbowTimer / state.rainbowDuration
             -- Create a smooth fade: 0 -> 1 -> 0 over the duration
             local fade = math.sin(fadeProgress * math.pi)
 
             if i == 1 then
-                -- Head: fade from bright yellow to bright purple
-                local yellowR, yellowG, yellowB = 1.0, 0.9, 0.2
+                -- Head: fade from bright green to bright purple
+                local greenR, greenG, greenB = 0.2, 0.9, 0.2
                 local purpleR, purpleG, purpleB = 0.8, 0.4, 0.9
-                r = yellowR + (purpleR - yellowR) * fade
-                g = yellowG + (purpleG - yellowG) * fade
-                b = yellowB + (purpleB - yellowB) * fade
+                r = greenR + (purpleR - greenR) * fade
+                g = greenG + (purpleG - greenG) * fade
+                b = greenB + (purpleB - greenB) * fade
             else
-                -- Body: fade from yellow gradient to purple gradient
+                -- Body: fade from green gradient to purple gradient
                 local gradient = 1 - (i * 0.05)
                 gradient = math.max(gradient, 0.4)
 
-                local yellowR, yellowG, yellowB = 0.9 * gradient, 0.8 * gradient, 0.1 * gradient
+                local greenR, greenG, greenB = 0.1 * gradient, 0.8 * gradient, 0.1 * gradient
                 local purpleR, purpleG, purpleB = 0.6 * gradient, 0.2 * gradient, 0.8 * gradient
-                r = yellowR + (purpleR - yellowR) * fade
-                g = yellowG + (purpleG - yellowG) * fade
-                b = yellowB + (purpleB - yellowB) * fade
+                r = greenR + (purpleR - greenR) * fade
+                g = greenG + (purpleG - greenG) * fade
+                b = greenB + (purpleB - greenB) * fade
             end
         else
-            -- Normal yellow color scheme
+            -- Normal green color scheme
             if i == 1 then
-                -- Bright yellow for head
-                r, g, b = 1.0, 0.9, 0.2
+                -- Bright green for head
+                r, g, b = 0.2, 0.9, 0.2
             else
-                -- Darker yellow for body, with slight gradient
+                -- Darker green for body, with slight gradient
                 local gradient = 1 - (i * 0.05)  -- Slightly darker for each segment
                 gradient = math.max(gradient, 0.4)  -- Don't go too dark
-                r, g, b = 0.9 * gradient, 0.8 * gradient, 0.1 * gradient
+                r, g, b = 0.1 * gradient, 0.8 * gradient, 0.1 * gradient
             end
         end
 
