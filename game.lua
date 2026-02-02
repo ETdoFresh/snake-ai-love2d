@@ -568,9 +568,27 @@ local function drawMenu()
     love.graphics.setColor(COLORS.menu_bg)
     love.graphics.rectangle("fill", 0, 0, w, h)
 
-    love.graphics.setColor(COLORS.text)
+    -- Title with bold effect and drop shadow
+    local defaultFont = love.graphics.getFont()
+    local font = love.graphics.newFont(48)
+    love.graphics.setFont(font)
+
     local title = "SNAKE GAME"
-    love.graphics.printf(title, 0, h/3, w, "center")
+    local titleY = h/3
+
+    -- Draw drop shadow (offset by 3 pixels)
+    love.graphics.setColor(0, 0, 0, 0.8)
+    love.graphics.printf(title, 3, titleY + 3, w, "center")
+
+    -- Draw bold effect by rendering text multiple times with slight offsets (green color)
+    love.graphics.setColor(0.2, 0.9, 0.3, 1)  -- Bright green
+    love.graphics.printf(title, 0, titleY, w, "center")
+    love.graphics.printf(title, 1, titleY, w, "center")
+    love.graphics.printf(title, 0, titleY + 1, w, "center")
+    love.graphics.printf(title, 1, titleY + 1, w, "center")
+
+    -- Reset to default font
+    love.graphics.setFont(defaultFont)
 
     local options = {"Start Game", "Quit"}
     for i, opt in ipairs(options) do
