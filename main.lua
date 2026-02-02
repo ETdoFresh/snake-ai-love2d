@@ -253,12 +253,15 @@ local function drawFood()
     local scale, offsetX, offsetY = getScaleAndOffsets()
     love.graphics.setColor(COLORS.food)
     local margin = math.max(1, math.floor(scale * 0.1))
-    love.graphics.rectangle("fill",
-        offsetX + (state.food.x - 1) * scale + margin,
-        offsetY + (state.food.y - 1) * scale + margin,
-        scale - margin * 2,
-        scale - margin * 2
-    )
+    local cellX = offsetX + (state.food.x - 1) * scale
+    local cellY = offsetY + (state.food.y - 1) * scale
+    local x1 = cellX + scale / 2
+    local y1 = cellY + margin
+    local x2 = cellX + margin
+    local y2 = cellY + scale - margin
+    local x3 = cellX + scale - margin
+    local y3 = cellY + scale - margin
+    love.graphics.polygon("fill", x1, y1, x2, y2, x3, y3)
 end
 
 local function drawSpeedBoost()
