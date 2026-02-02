@@ -1,4 +1,4 @@
--- game.lua - Main Snake Game Module
+-- game/game.lua - Main Snake Game Module
 --
 -- This file contains the core game logic for a classic Snake game built with Love2D.
 -- It handles all aspects of gameplay including:
