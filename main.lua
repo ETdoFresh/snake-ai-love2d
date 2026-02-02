@@ -252,10 +252,13 @@ end
 local function drawFood()
     local scale, offsetX, offsetY = getScaleAndOffsets()
     love.graphics.setColor(COLORS.food)
-    local centerX = offsetX + (state.food.x - 1) * scale + scale / 2
-    local centerY = offsetY + (state.food.y - 1) * scale + scale / 2
-    local radius = math.max(2, (scale - 4) / 2)
-    love.graphics.circle("fill", centerX, centerY, radius)
+    local margin = math.max(1, math.floor(scale * 0.1))
+    love.graphics.rectangle("fill",
+        offsetX + (state.food.x - 1) * scale + margin,
+        offsetY + (state.food.y - 1) * scale + margin,
+        scale - margin * 2,
+        scale - margin * 2
+    )
 end
 
 local function drawSpeedBoost()
