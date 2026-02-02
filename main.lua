@@ -254,8 +254,12 @@ local function drawFood()
     love.graphics.setColor(COLORS.food)
     local centerX = offsetX + (state.food.x - 1) * scale + scale / 2
     local centerY = offsetY + (state.food.y - 1) * scale + scale / 2
-    local radius = (scale - 4) / 2
-    love.graphics.circle("fill", centerX, centerY, radius)
+    local size = (scale - 4) / 2
+    love.graphics.polygon("fill",
+        centerX, centerY - size,
+        centerX + size, centerY + size,
+        centerX - size, centerY + size
+    )
 end
 
 local function drawSpeedBoost()
