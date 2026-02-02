@@ -252,13 +252,12 @@ end
 local function drawFood()
     local scale, offsetX, offsetY = getScaleAndOffsets()
     love.graphics.setColor(COLORS.food)
-    local centerX = offsetX + (state.food.x - 1) * scale + scale / 2
-    local centerY = offsetY + (state.food.y - 1) * scale + scale / 2
-    local size = (scale - 4) / 2
-    love.graphics.polygon("fill",
-        centerX, centerY - size,
-        centerX + size, centerY + size,
-        centerX - size, centerY + size
+    local margin = 2
+    love.graphics.rectangle("fill",
+        offsetX + (state.food.x - 1) * scale + margin,
+        offsetY + (state.food.y - 1) * scale + margin,
+        scale - margin * 2,
+        scale - margin * 2
     )
 end
 
