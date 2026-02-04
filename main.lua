@@ -208,25 +208,25 @@ local function drawSnake()
             local fadeProgress = state.rainbowTimer / state.rainbowDuration
             local fade = math.sin(fadeProgress * math.pi)
             if i == 1 then
-                local purpleR, purpleG, purpleB = 0.8, 0.2, 1.0
-                local goldR, goldG, goldB = 1.0, 0.85, 0.2
-                r = purpleR + (goldR - purpleR) * fade
-                g = purpleG + (goldG - purpleG) * fade
-                b = purpleB + (goldB - purpleB) * fade
+                local greenR, greenG, greenB = 0.2, 1.0, 0.2
+                local purpleR, purpleG, purpleB = 0.8, 0.4, 0.9
+                r = greenR + (purpleR - greenR) * fade
+                g = greenG + (purpleG - greenG) * fade
+                b = greenB + (purpleB - greenB) * fade
             else
                 local gradient = math.max(0.4, 1 - (i * 0.05))
-                local purpleR, purpleG, purpleB = 0.6 * gradient, 0.1 * gradient, 0.9 * gradient
-                local goldR, goldG, goldB = 0.9 * gradient, 0.7 * gradient, 0.1 * gradient
-                r = purpleR + (goldR - purpleR) * fade
-                g = purpleG + (goldG - purpleG) * fade
-                b = purpleB + (goldB - purpleB) * fade
+                local greenR, greenG, greenB = 0.1 * gradient, 0.9 * gradient, 0.1 * gradient
+                local purpleR, purpleG, purpleB = 0.6 * gradient, 0.2 * gradient, 0.8 * gradient
+                r = greenR + (purpleR - greenR) * fade
+                g = greenG + (purpleG - greenG) * fade
+                b = greenB + (purpleB - greenB) * fade
             end
         else
             if i == 1 then
-                r, g, b = 0.8, 0.2, 1.0
+                r, g, b = 0.2, 1.0, 0.2
             else
                 local gradient = math.max(0.4, 1 - (i * 0.05))
-                r, g, b = 0.6 * gradient, 0.1 * gradient, 0.9 * gradient
+                r, g, b = 0.1 * gradient, 0.9 * gradient, 0.1 * gradient
             end
         end
 
