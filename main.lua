@@ -475,12 +475,8 @@ function game.draw()
     end
 end
 
--- Handle key presses
+-- Handle key presses (keys are already mapped: WASD->arrows, gamepad->keys)
 function game.keypressed(key, scancode, isrepeat)
-    if isrepeat and (state.screen == "menu" or state.screen == "paused" or state.screen == "gameover") then
-        return
-    end
-
     if state.screen == "menu" then
         if key == "up" then
             state.menuSelection = state.menuSelection - 1
@@ -496,13 +492,13 @@ function game.keypressed(key, scancode, isrepeat)
             end
         end
     elseif state.screen == "playing" then
-        if key == "up" or key == "w" then
+        if key == "up" then
             if state.direction.y ~= 1 then state.nextDirection = {x = 0, y = -1} end
-        elseif key == "down" or key == "s" then
+        elseif key == "down" then
             if state.direction.y ~= -1 then state.nextDirection = {x = 0, y = 1} end
-        elseif key == "left" or key == "a" then
+        elseif key == "left" then
             if state.direction.x ~= 1 then state.nextDirection = {x = -1, y = 0} end
-        elseif key == "right" or key == "d" then
+        elseif key == "right" then
             if state.direction.x ~= -1 then state.nextDirection = {x = 1, y = 0} end
         elseif key == "escape" then
             state.screen = "paused"
@@ -555,6 +551,19 @@ function game.reload(savedState)
     end
 end
 
+-- Input deduplication
+local DEDUP_WINDOW = 0.08 -- 80ms window to prevent double-presses
+local lastPressTime = {}
+
+local function dedup(key)
+    local now = love.timer.getTime()
+    if lastPressTime[key] and (now - lastPressTime[key]) < DEDUP_WINDOW then
+        return true -- duplicate, skip
+    end
+    lastPressTime[key] = now
+    return false
+end
+
 -- Love2D callbacks (delegate to module functions)
 function love.load()
     game.init()
@@ -569,7 +578,43 @@ function love.draw()
 end
 
 function love.keypressed(key, scancode, isrepeat)
-    game.keypressed(key, scancode, isrepeat)
+    if isrepeat then return end
+
+    -- Map WASD to arrow keys at the top level
+    local wasd = {w = "up", s = "down", a = "left", d = "right"}
+    local mapped = wasd[key] or key
+
+    if dedup(mapped) then return end
+    game.keypressed(mapped, scancode, isrepeat)
+end
+
+function love.gamepadpressed(joystick, button)
+    local map = {
+        dpup = "up", dpdown = "down", dpleft = "left", dpright = "right",
+        a = "return", b = "escape", x = "space", y = "r",
+        start = "escape", back = "backspace",
+    }
+    local key = map[button]
+    if key then
+        if dedup(key) then return end
+        game.keypressed(key)
+    end
+end
+
+function love.mousepressed(x, y, button)
+    if button == 1 and state and state.screen == "menu" then
+        -- Allow clicking menu items
+        local w, h = love.graphics.getWidth(), love.graphics.getHeight()
+        local options = {"Start Game", "Quit"}
+        for i = 1, #options do
+            local itemY = h/2 + (i-1) * 30
+            if y >= itemY and y <= itemY + 20 then
+                state.menuSelection = i
+                game.keypressed("return")
+                return
+            end
+        end
+    end
 end
 
 return game
